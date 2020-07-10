@@ -1,0 +1,279 @@
+<doctype HTML>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+
+    <head>
+
+        <link
+            href="https://fonts.googleapis.com/css?family=Noto+Sans:400,400i,700,700i|Oswald:200,300,400,500,600,700&display=swap&subset=latin-ext"
+            rel="stylesheet">
+        <link rel="stylesheet" href="css/bootstrap.min.css">
+        <link rel="stylesheet" type="text/css" href="css/site.css">
+        <script src="https://code.jquery.com/jquery-3.5.0.js"
+            integrity="sha256-r/AaFHrszJtwpe+tHyNi/XCfMxYpbsRg2Uqn0x3s2zc=" crossorigin="anonymous"></script>
+
+        <script src="libs/d3.v4.min.js"></script>
+        <script src="libs/d3-queue.v3.min.js"></script>
+        <link rel="icon" href="img/favicon.ico">
+
+    </head>
+
+    <body>
+        <h1>Programas de retenção de empregos</h1><br>
+        <h2>Em % de funcionários</h2>
+        <img id="Share" src="img/share.svg" alt="share">
+
+    <div class="flex-container" id="Downloadbanner">
+        <button class="toData active" id="WORLDbtn" onclick="drawChart(value)" value="Approved_applications">Inscrições aprovadas para programas de retenção de empregos</button>
+        <button class="toData" id="OECDbtn" onclick="drawChart(value)" value="Actual_use">Uso real</button>
+    </div>
+        <div id="GDPchart"></div>
+        <div id="source" class="source">Fonte: <a class="source" href="https://doi.org/10.1787/1686c758-en" target="_blank">OECD (2020), OECD Employment Outlook
+            2020: Worker Security and the COVID-19 Crisis, OECD Publishing, Paris.</a></div><div id="shareLink">
+            <div id="shutterholdertracker">
+                <img id="shuttershare" src="img/cross.svg">
+                <div id="trackersText">
+                    <b>Copy link:</b><Br />
+                    <span>https://oecd.github.io/OECD-EMO-2020-JOB-RETENTION-pt/</span><Br />
+                    <b>Embed link:</b><Br />
+                    <textarea
+                        readonly><iframe src="https://oecd.github.io/OECD-EMO-2020-JOB-RETENTION-pt/" width="100%" height="500px" style="border:none;"></iframe></textarea>
+        
+                </div>
+            </div>
+        </div>
+        <div id="note" class="source">Nota: neste gráfico, "funcionários" refere-se apenas a "funcionários dependentes"; ou seja, funcionários que trabalham
+        diretamente para uma empresa e não trabalham por conta própria.<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Os dados dos EUA referem-se à participação em esquemas de compensação de curto prazo.</div>
+    </body>
+    <script>
+        var dataPerm=[];
+        var valueButton="Approved_applications"
+        
+        var keys= ["approved", "diff"]
+
+    var divMap = d3.select("body").append("div")
+        .attr("class", "tooltip")
+        .style("opacity", 0);
+
+
+  
+    var margin = { top: 10, right: 50, bottom: 80, left: 50 };
+
+    var mapRatio = 7 / 20;
+
+    var width = document.getElementById("GDPchart").offsetWidth - margin.left - margin.right;
+
+    var height;
+    if (width > 650)
+        height=450//height = width * mapRatio;
+    else
+        height = 450//height = width;
+
+
+    var urls = {
+        data1: "data/data1.tsv",
+    };
+
+    d3.queue()
+        .defer(d3.tsv, urls.data1)
+        .await(render);
+
+    var GDPsvg= d3.select("#GDPchart").append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform",
+            "translate(" + margin.left + "," + margin.top + ")");
+
+    // set x scale
+    var x = d3.scaleBand()
+        .rangeRound([0, width])
+        .paddingInner(0.05)
+        .align(0.1);
+
+
+    // set y scale
+    var y = d3.scaleLinear()
+        .rangeRound([height-margin.bottom, margin.top]);
+
+
+    function render(err, Data1) {
+        var count=0
+        Data1.forEach(function (d) {
+            count++
+                    
+            var countryName=d.Country;
+            if(d.Country== "China (People's Republic of)")
+                countryName="China"
+            if (d.Country == "OECD - Total")
+                countryName = "OECD"
+            if (d.Country == "Euro area (17 countries)")
+                countryName = "Euro area"
+            dataPerm.push({ "Country": countryName, "ISO": d.LOCATION, "Approved_applications":d.Approved_applications,  "Actual_use": d.Actual_use,"headcount":d.Headcounts})
+  
+            if(count== Data1.length)
+                drawChart(valueButton)
+        })
+    }
+
+
+    var btnContainer = document.getElementById("Downloadbanner");
+    // Get all buttons with class="btn" inside the container
+    var btns = btnContainer.getElementsByClassName("toData");
+
+    // Loop through the buttons and add the active class to the current/clicked button
+    for (var i = 0; i < btns.length; i++) {
+        btns[i].addEventListener("click", function () {
+            var current = document.getElementsByClassName("active");
+            current[0].className = current[0].className.replace(" active", "");
+            this.className += " active";
+        });
+    }
+
+    function drawChart(value){
+        GDPsvg.selectAll("*").remove();
+
+        valueButton = value;
+        var data=[];
+        
+        if(value=="Actual_use"){
+                dataPerm.forEach(function (k) {
+                    if (k.Actual_use != "#N/A")
+                        data.push(k)
+                })
+        }else if (value == "Approved_applications") {
+                dataPerm.forEach(function (k) {
+                        data.push(k)
+                })
+        }   
+
+
+         width = document.getElementById("GDPchart").offsetWidth - margin.left - margin.right;
+
+        if (width > 650)
+            height = 450//height = width * mapRatio;
+        else
+            height = 450//height = width;
+
+        
+        d3.selectAll("svg")
+            .attr("width", width + margin.left + margin.right)
+
+            GDPsvg.append("g")
+            .attr("transform",
+                "translate(" + margin.left + "," + margin.top + ")");
+
+        // set x scale
+        x.rangeRound([0, width])
+
+        if (width >650 && valueButton != "G7")
+            x.paddingInner(0.05)
+        else if(width > 650 && valueButton == "G7")
+            x.paddingInner(0.5)
+        else if (width < 650)
+            x.paddingInner(0.5)
+
+
+        data.sort(function (a, b) { return b[value] - a[value]; });
+
+        x.domain(data.map(function (d) { return d.Country; }));
+
+        y.domain([ 0, d3.max(data, function (d) { return parseFloat(d[value]); })]).nice();
+       
+
+
+        GDPsvg.append("g")
+            .attr("class", "axis")
+            .attr("transform", "translate(0," + height + ")")
+            .call(d3.axisBottom(x))
+            .selectAll("text")
+            .style("text-anchor", "end")
+            .attr("dx", "4em")
+            .attr("dy", "-0.5em")
+            .attr("transform", "rotate(-90)");  
+
+
+        GDPsvg.append("g")
+            .attr("class", "axis")
+            //.call(d3.axisLeft(y).ticks(null, "s"))
+            .call(d3.axisLeft(y).ticks(5).tickFormat(function (d) {
+                return y.tickFormat(20, d3.format(".0f"))(d) + "%"
+            }).tickSize(-(width)));
+ 
+
+        GDPsvg.selectAll(".bar")
+            .data(data)
+            .enter().append("rect")
+            .attr("class", "bar")
+            .attr("x", function (d) { return x(d.Country); })
+            .attr("y", function (d) { return y(d[value]); })
+            .attr("fill", function (d) { return "#00b5cb"; })
+            .attr("opacity", function (d) {
+                if (d.ISO == "EA17" || d.ISO == "OTO" || d.ISO == "WLD" || d.ISO == "G20")
+                    return 0.6;
+                else
+                    return 1;
+            })
+            .attr("width", x.bandwidth())
+            .attr("height", function (d) { return height-margin.bottom - y(d[value]); })
+            .on("mouseover", function () {
+                d3.select(this).attr("opacity", 0.2)
+            })
+            .on("mouseout", function (d) {
+
+                d3.select(this)
+                    .attr("opacity", function () {
+                        if (d.ISO == "EA17" || d.ISO == "OTO" || d.ISO == "WLD" || d.ISO == "G20")
+                            return 0.6;
+                        else
+                            return 1;
+                    })
+
+                divMap.transition()
+                    .duration(100)
+                    .style("opacity", 0);
+            })
+            .on("mousemove", function (d) {
+
+                divMap.transition()
+                    .duration(100)
+                    .style("opacity", 1);
+
+                var htmlText;
+                if (d.Actual_use == "#N/A")
+                    htmlText = "No/a <b>" + d.Country + "</b>, " + d.Approved_applications + "% dos trabalhadores foram aprovados para esquemas de retenção de emprego, ou " + d3.format(",.0f")(parseFloat(d.headcount) * 1000)+ " no total";
+                else
+                    htmlText = "No/a <b>" + d.Country +"</b>, " + d.Actual_use + "% dos trabalhadores efetivamente se beneficiaram de esquemas de retenção de emprego, enquanto " + d.Approved_applications + "%, ou "+  d3.format(",.0f")(parseFloat(d.headcount) * 1000) + ", poderiam ter se beneficiado no total." ;
+                
+
+                if (event.pageX < width - 75) {
+                    divMap.html(htmlText)
+                        .style("left", event.pageX + "px")
+                        .style("top", event.pageY + "px");
+                } else {
+                    divMap.html(htmlText)
+                        .style("left", width - 100 + "px")
+                        .style("top", event.pageY + "px");
+                }
+
+            });;    
+
+    }
+
+        d3.select("#Share").on("click", function () {
+            document.getElementById("shareLink").style.display = "inline-block";
+        })
+        d3.select("#shuttershare")
+            .on("mouseover", function () {
+                d3.select(this).style("opacity", 0.5);
+            })
+            .on("mouseout", function () {
+                d3.select(this).style("opacity", 1);
+            })
+            .on("click", function () {
+                document.getElementById("shareLink").style.display = 'none';
+            })
+    
+    
+    $(window).on('resize', function(){drawChart(valueButton);});
+    </script>
